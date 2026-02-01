@@ -156,6 +156,7 @@ function App() {
     const currentModule = useAppStore(state => state.currentModule);
     const setCurrentModule = useAppStore(state => state.setCurrentModule);
     const isAuthLoading = useAppStore(state => state.isAuthLoading);
+    const user = useAppStore(state => state.user);
 
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -169,6 +170,43 @@ function App() {
     // Show loading screen while checking auth
     if (isAuthLoading) {
         return <LoadingScreen />;
+    }
+
+    // Force login if not authenticated
+    if (!user) {
+        return (
+            <>
+                <div className="fixed inset-0 bg-dark-700 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center max-w-md"
+                    >
+                        <img
+                            src="/logo-garcia.jpg"
+                            alt="Restaurante Garcia"
+                            className="w-32 h-32 rounded-2xl mx-auto mb-6 shadow-2xl object-cover"
+                        />
+                        <h1 className="text-3xl font-bold text-white mb-3">Restaurante Garcia</h1>
+                        <p className="text-zinc-400 mb-8">
+                            Faça login para acessar nosso cardápio e fazer pedidos
+                        </p>
+                        <Button
+                            onClick={() => setIsAuthModalOpen(true)}
+                            className="w-full py-4 text-lg"
+                        >
+                            Entrar / Cadastrar
+                        </Button>
+                    </motion.div>
+                </div>
+
+                <AuthModal
+                    isOpen={isAuthModalOpen}
+                    onClose={() => setIsAuthModalOpen(false)}
+                />
+                <ToastContainer />
+            </>
+        );
     }
 
     return (
