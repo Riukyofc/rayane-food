@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, onSnapshot, query, orderBy, where, serverTimestamp, limit } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, onSnapshot, query, orderBy, where, serverTimestamp, limit } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
 // Firebase configuration
@@ -67,8 +67,8 @@ export const registerWithEmail = async (email, password, displayName, phone = ''
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
 
-        // Create user document in Firestore with phone
-        await addDoc(collection(db, 'users'), {
+        // Create user document in Firestore with userId as document ID
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
             uid: userCredential.user.uid,
             email,
             displayName,
