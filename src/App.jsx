@@ -134,10 +134,12 @@ const LoadingScreen = () => (
             animate={{ opacity: 1, scale: 1 }}
             className="text-center"
         >
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-500/30">
-                <span className="text-white font-bold text-3xl">R</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Rayane Food</h1>
+            <img
+                src="/logo-garcia.jpg"
+                alt="Restaurante Garcia"
+                className="w-32 h-32 rounded-2xl mx-auto mb-6 shadow-2xl object-cover"
+            />
+            <h1 className="text-2xl font-bold text-white mb-2">Restaurante Garcia</h1>
             <div className="flex items-center justify-center gap-2 text-zinc-500">
                 <Loader2 className="animate-spin" size={16} />
                 <span className="text-sm">Carregando...</span>

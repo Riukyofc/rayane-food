@@ -16,7 +16,7 @@ import {
 // ========================================
 
 const INITIAL_SETTINGS = {
-    storeName: 'Rayane Food',
+    storeName: 'Restaurante Garcia',
     isOpen: true,
     whatsapp: '5511999999999',
     address: 'Av. Gastronômica, 1500 - Jardins, SP',
@@ -232,9 +232,17 @@ export const useAppStore = create(
                 set({ isAuthLoading: true, authError: null });
                 const result = await registerWithEmail(email, password, displayName, phone);
                 if (result.success) {
-                    const profile = await getUserProfile(result.user.uid);
+                    // Try to get profile, but don't block if it fails
+                    let profile = null;
+                    try {
+                        // Wait a bit for Firestore to sync
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        profile = await getUserProfile(result.user.uid);
+                    } catch (error) {
+                        console.log('Profile not found yet, will be loaded on next login');
+                    }
                     set({ user: result.user, userProfile: profile, isAuthLoading: false });
-                    get().addToast('Conta criada!', 'Bem-vindo ao Rayane Food!', 'success');
+                    get().addToast('Conta criada!', 'Bem-vindo ao Restaurante Garcia!', 'success');
                 } else {
                     set({ authError: result.error, isAuthLoading: false });
                     get().addToast('Erro', result.error, 'error');
