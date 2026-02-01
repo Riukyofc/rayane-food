@@ -8,7 +8,11 @@ import {
     getUserProfile,
     createOrder as firebaseCreateOrder,
     subscribeToOrders,
-    updateOrderStatus as firebaseUpdateOrderStatus
+    updateOrderStatus as firebaseUpdateOrderStatus,
+    addProduct as firebaseAddProduct,
+    updateProduct as firebaseUpdateProduct,
+    deleteProduct as firebaseDeleteProduct,
+    updateSettings as firebaseUpdateSettings
 } from '../lib/firebase';
 
 // ========================================
@@ -180,9 +184,9 @@ export const useAppStore = create(
     persist(
         (set, get) => ({
             // State
-            settings: INITIAL_SETTINGS,
+            settings: INITIAL_SETTINGS, // Will be replaced by Firebase
             categories: INITIAL_CATEGORIES,
-            products: INITIAL_PRODUCTS,
+            products: [], // Will be loaded from Firebase
             orders: [],
             analytics: INITIAL_ANALYTICS,
             cart: [],
@@ -279,10 +283,21 @@ export const useAppStore = create(
             // ========================================
             // SETTINGS ACTIONS
             // ========================================
-            updateSettings: (newSettings) => {
+            setSettings: (settings) => set({ settings }),
+
+            updateSettings: async (newSettings) => {
+                // Update local state immediately for UI responsiveness
                 set(state => ({
                     settings: { ...state.settings, ...newSettings }
                 }));
+
+                // Save to Firebase
+                const result = await firebaseUpdateSettings(newSettings);
+                if (!result.success) {
+                    console.error('Failed to update settings:', result.error);
+                    get().addToast('Erro', 'Falha ao salvar configurações', 'error');
+                }
+
                 if (newSettings.isOpen !== undefined) {
                     get().addToast(
                         'Loja',
@@ -334,28 +349,45 @@ export const useAppStore = create(
             // ========================================
             // PRODUCT ACTIONS
             // ========================================
-            addProduct: (product) => {
+            setProducts: (products) => set({ products }),
+
+            addProduct: async (product) => {
                 const newProduct = {
                     ...product,
-                    id: Date.now(),
                     isNew: true,
                     isPaused: false,
                     rating: 5.0,
                     reviews: 0
                 };
-                set(state => ({
-                    products: [newProduct, ...state.products]
-                }));
-                get().addToast('Cardápio', `"${product.name}" adicionado!`, 'success');
+
+                // Save to Firebase
+                const result = await firebaseAddProduct(newProduct);
+                if (result.success) {
+                    get().addToast('Cardápio', `"${product.name}" adicionado!`, 'success');
+                } else {
+                    get().addToast('Erro', 'Falha ao adicionar produto', 'error');
+                }
             },
 
-            updateProduct: (id, updates) => {
+            updateProduct: async (id, updates) => {
+                // Update locally first for UI responsiveness
                 set(state => ({
                     products: state.products.map(p =>
-                        p.id === id ? { ...p, ...updates } : p
+                        p.id === id || p.firestoreId === id ? { ...p, ...updates } : p
                     )
                 }));
-                get().addToast('Cardápio', 'Produto atualizado.', 'success');
+
+                // Find the firestore ID
+                const product = get().products.find(p => p.id === id || p.firestoreId === id);
+                const firestoreId = product?.firestoreId || id;
+
+                // Save to Firebase
+                const result = await firebaseUpdateProduct(firestoreId, updates);
+                if (!result.success) {
+                    get().addToast('Erro', 'Falha ao atualizar produto', 'error');
+                } else {
+                    get().addToast('Cardápio', 'Produto atualizado.', 'success');
+                }
             },
 
             toggleProductPause: (id) => {
@@ -375,11 +407,23 @@ export const useAppStore = create(
                 );
             },
 
-            removeProduct: (id) => {
+            removeProduct: async (id) => {
+                // Remove locally first for UI responsiveness
                 set(state => ({
-                    products: state.products.filter(p => p.id !== id)
+                    products: state.products.filter(p => p.id !== id && p.firestoreId !== id)
                 }));
-                get().addToast('Cardápio', 'Produto removido.', 'info');
+
+                // Find the firestore ID
+                const product = get().products.find(p => p.id === id || p.firestoreId === id);
+                const firestoreId = product?.firestoreId || id;
+
+                // Delete from Firebase
+                const result = await firebaseDeleteProduct(firestoreId);
+                if (!result.success) {
+                    get().addToast('Erro', 'Falha ao remover produto', 'error');
+                } else {
+                    get().addToast('Cardápio', 'Produto removido.', 'info');
+                }
             },
 
             setProducts: (products) => set({ products }),

@@ -332,3 +332,54 @@ export const subscribeToUsers = (callback) => {
 };
 
 export { auth, db, app };
+
+// ========================================
+// FIRESTORE - SEED INITIAL DATA
+// ========================================
+
+// Create or set settings document (for initial seed)
+export const setSettings = async (settings) => {
+    try {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(doc(db, 'settings', 'store'), {
+            ...settings,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error setting settings:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Seed initial data (products and settings) if Firestore is empty
+export const seedInitialData = async (initialProducts, initialSettings) => {
+    try {
+        // Check if products already exist
+        const productsSnapshot = await getDocs(collection(db, 'products'));
+
+        if (productsSnapshot.empty) {
+            console.log('🌱 Seeding initial products...');
+            // Add all initial products
+            for (const product of initialProducts) {
+                await addProduct(product);
+            }
+            console.log(`✅ Seeded ${initialProducts.length} products`);
+        }
+
+        // Check if settings exist
+        const settingsDoc = await getDoc(doc(db, 'settings', 'store'));
+
+        if (!settingsDoc.exists()) {
+            console.log('🌱 Seeding initial settings...');
+            await setSettings(initialSettings);
+            console.log('✅ Seeded settings');
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error seeding data:', error);
+        return { success: false, error: error.message };
+    }
+};
