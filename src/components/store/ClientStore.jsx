@@ -426,9 +426,72 @@ const CheckoutView = ({ onBack }) => {
 
                 {/* Finish Button */}
                 <Button onClick={handleFinish} className="w-full py-4 text-base">
-                    Enviar Pedido via WhatsApp
+                    Confirmar Pedido
                 </Button>
             </div>
+
+            {/* Order Confirmation Modal */}
+            <Modal
+                isOpen={orderConfirmed}
+                onClose={() => {
+                    setOrderConfirmed(false);
+                    onBack();
+                }}
+                title="Pedido Confirmado! 🎉"
+            >
+                <div className="space-y-6">
+                    <div className="text-center">
+                        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Package size={40} className="text-green-500" />
+                        </div>
+                        <p className="text-zinc-300 mb-4">
+                            Seu pedido foi registrado com sucesso!
+                        </p>
+                        <p className="text-sm text-zinc-400">
+                            O administrador já pode ver seu pedido no painel.
+                        </p>
+                    </div>
+
+                    {confirmedOrder && (
+                        <div className="bg-dark-300 rounded-xl p-4 space-y-3">
+                            <div>
+                                <p className="text-xs text-zinc-500 uppercase mb-1">Cliente</p>
+                                <p className="text-white font-semibold">{confirmedOrder.customerName}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-zinc-500 uppercase mb-1">Endereço</p>
+                                <p className="text-white">{confirmedOrder.address}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-zinc-500 uppercase mb-1">Total</p>
+                                <p className="text-2xl font-bold gradient-text">
+                                    {formatCurrency(confirmedOrder.total)}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        <Button onClick={handleSendWhatsApp} className="w-full py-4">
+                            <Phone className="mr-2" size={20} />
+                            Enviar via WhatsApp
+                        </Button>
+                        <button
+                            onClick={() => {
+                                setOrderConfirmed(false);
+                                onBack();
+                            }}
+                            className="w-full py-3 text-zinc-400 hover:text-white transition-colors"
+                        >
+                            Voltar para o início
+                        </button>
+                    </div>
+
+                    <p className="text-xs text-zinc-500 text-center">
+                        💡 Envie via WhatsApp para finalizar seu pedido e combinar detalhes!
+                    </p>
+                </div>
+            </Modal>
         </div>
     );
 };
