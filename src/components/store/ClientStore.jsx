@@ -12,7 +12,7 @@ import { UserMenu } from '../auth/AuthModal';
 // PRODUCT MODAL
 // ========================================
 
-const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
+const ProductModal = ({ product, isOpen, onClose, onAddToCart, onProductAdded }) => {
     const [observation, setObservation] = useState('');
     const [quantity, setQuantity] = useState(1);
 
@@ -22,9 +22,11 @@ const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
         for (let i = 0; i < quantity; i++) {
             onAddToCart(product, observation);
         }
+        const addedProduct = { ...product, quantity };
         setObservation('');
         setQuantity(1);
         onClose();
+        onProductAdded(addedProduct);
     };
 
     return (
@@ -565,6 +567,8 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [view, setView] = useState('home'); // 'home' | 'checkout'
+    const [showAddedModal, setShowAddedModal] = useState(false);
+    const [addedProduct, setAddedProduct] = useState(null);
 
     const filteredProducts = useMemo(() => {
         let list = products;
@@ -724,6 +728,10 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
                 isOpen={!!selectedProduct}
                 onClose={() => setSelectedProduct(null)}
                 onAddToCart={addToCart}
+                onProductAdded={(product) => {
+                    setAddedProduct(product);
+                    setShowAddedModal(true);
+                }}
             />
 
             {/* Cart Drawer */}
@@ -735,6 +743,49 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
                     setView('checkout');
                 }}
             />
+
+            {/* Product Added Confirmation Modal */}
+            <Modal
+                isOpen={showAddedModal}
+                onClose={() => setShowAddedModal(false)}
+                title=""
+                size="sm"
+            >
+                <div className="text-center space-y-6 py-4">
+                    <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                        <ShoppingBag size={32} className="text-green-500" />
+                    </div>
+
+                    <div>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                            Produto adicionado!
+                        </h3>
+                        <p className="text-zinc-400">
+                            Deseja abrir o carrinho?
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Button
+                            onClick={() => {
+                                setShowAddedModal(false);
+                                setCartOpen(true);
+                            }}
+                            className="w-full py-3"
+                        >
+                            <ShoppingBag className="mr-2" size={18} />
+                            Abrir Carrinho
+                        </Button>
+
+                        <button
+                            onClick={() => setShowAddedModal(false)}
+                            className="w-full py-3 text-zinc-400 hover:text-white transition-colors font-medium"
+                        >
+                            Continuar comprando
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
