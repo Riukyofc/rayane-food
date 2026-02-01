@@ -36,6 +36,7 @@ const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
                         src={product.image}
                         alt={product.name}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-dark-500 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
@@ -162,6 +163,7 @@ const CartDrawer = ({ isOpen, onClose, onCheckout }) => {
                                                 src={item.image}
                                                 alt={item.name}
                                                 className="w-20 h-20 rounded-lg object-cover"
+                                                loading="lazy"
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between mb-1">
@@ -408,6 +410,7 @@ const ProductCard = ({ product, onClick }) => {
                     src={product.image}
                     alt={product.name}
                     className={`product-image ${product.isPaused ? 'grayscale' : ''}`}
+                    loading="lazy"
                 />
                 {product.isPaused && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -535,9 +538,10 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
                     className="relative h-64 md:h-80 rounded-3xl overflow-hidden"
                 >
                     <img
-                        src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80"
+                        src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=60"
                         alt="Hero"
                         className="w-full h-full object-cover"
+                        loading="eager"
                     />
                     <div className="absolute inset-0 hero-gradient" />
                     <div className="absolute bottom-6 left-6 right-6">

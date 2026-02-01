@@ -49,7 +49,7 @@ const INITIAL_PRODUCTS = [
         description: "Filé de frango grelhado, arroz soltinho, feijão carioca, farofa da casa e salada mista. Porção generosa.",
         price: 24.90,
         category: "marmitas",
-        image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=400&q=50",
         isNew: true,
         isPaused: false,
         rating: 4.8,
@@ -61,7 +61,7 @@ const INITIAL_PRODUCTS = [
         description: "Dois blends de 90g smash, cheddar inglês derretido, cebola caramelizada e molho especial da casa no pão brioche artesanal.",
         price: 32.90,
         category: "burgers",
-        image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=50",
         isPaused: false,
         rating: 4.9,
         reviews: 89
@@ -72,7 +72,7 @@ const INITIAL_PRODUCTS = [
         description: "Frango desfiado, legumes grelhados, brócolis, cenoura e batata doce. Zero açúcar, ideal para dieta.",
         price: 28.90,
         category: "marmitas",
-        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=50",
         isPaused: false,
         rating: 4.7,
         reviews: 67
@@ -83,7 +83,7 @@ const INITIAL_PRODUCTS = [
         description: "Blend 150g, fatias de bacon crocante, queijo prato derretido, alface, tomate e maionese especial.",
         price: 35.90,
         category: "burgers",
-        image: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?auto=format&fit=crop&w=400&q=50",
         isNew: true,
         isPaused: false,
         rating: 4.8,
@@ -95,7 +95,7 @@ const INITIAL_PRODUCTS = [
         description: "Sorvete de baunilha cremoso batido com biscoito Oreo e calda de chocolate belga. 500ml.",
         price: 22.00,
         category: "drinks",
-        image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=400&q=50",
         isPaused: false,
         rating: 4.9,
         reviews: 203
@@ -106,7 +106,7 @@ const INITIAL_PRODUCTS = [
         description: "Molho de tomate italiano, mozzarella di bufala, tomate cereja, manjericão fresco e azeite trufado.",
         price: 49.90,
         category: "pizzas",
-        image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=400&q=50",
         isPaused: false,
         rating: 4.6,
         reviews: 78
@@ -117,7 +117,7 @@ const INITIAL_PRODUCTS = [
         description: "Refrigerante Coca-Cola gelado. Lata 350ml.",
         price: 6.00,
         category: "drinks",
-        image: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&w=400&q=50",
         isPaused: false,
         rating: 5.0,
         reviews: 45
@@ -128,7 +128,7 @@ const INITIAL_PRODUCTS = [
         description: "Brownie de chocolate 70% cacau, servido com bola de sorvete de creme e calda quente.",
         price: 18.90,
         category: "desserts",
-        image: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?auto=format&fit=crop&w=500&q=60",
+        image: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?auto=format&fit=crop&w=400&q=50",
         isPaused: false,
         rating: 4.8,
         reviews: 92
