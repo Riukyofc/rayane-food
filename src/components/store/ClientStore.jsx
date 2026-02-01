@@ -237,6 +237,9 @@ const CheckoutView = ({ onBack }) => {
     const [deliveryBairro, setDeliveryBairro] = useState('');
     const [address, setAddress] = useState('');
     const [name, setName] = useState('');
+    const [orderConfirmed, setOrderConfirmed] = useState(false);
+    const [confirmedOrder, setConfirmedOrder] = useState(null);
+    const addOrder = useAppStore(state => state.addOrder);
 
     const deliveryFee = useMemo(() => {
         if (deliveryMode === 'pickup') return 0;
@@ -247,22 +250,59 @@ const CheckoutView = ({ onBack }) => {
     const subtotal = getCartTotal();
     const total = subtotal + deliveryFee;
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
         if (deliveryMode === 'delivery' && (!deliveryBairro || !address || !name)) {
             addToast('Erro', 'Preencha todos os campos obrigatórios.', 'error');
             return;
         }
 
-        const items = cart.map(i => `${i.qty}x ${i.name}`).join('\n');
+        if (deliveryMode === 'pickup' && !name) {
+            addToast('Erro', 'Preencha seu nome.', 'error');
+            return;
+        }
+
+        // Salvar pedido no Firebase primeiro
+        const orderData = {
+            items: cart.map(item => ({
+                name: item.name,
+                price: item.price,
+                quantity: item.qty,
+                observation: item.observation,
+                category: item.category
+            })),
+            customerName: name,
+            deliveryMode,
+            address: deliveryMode === 'delivery' ? `${address} - ${deliveryBairro}` : 'Retirada no local',
+            deliveryBairro: deliveryMode === 'delivery' ? deliveryBairro : null,
+            subtotal,
+            deliveryFee,
+            total,
+            status: 'pending'
+        };
+
+        const result = await addOrder(orderData);
+
+        if (result.success) {
+            setConfirmedOrder(orderData);
+            setOrderConfirmed(true);
+            clearCart();
+            addToast('Sucesso', 'Pedido confirmado! 🎉', 'success');
+        } else {
+            addToast('Erro', 'Falha ao criar pedido. Tente novamente.', 'error');
+        }
+    };
+
+    const handleSendWhatsApp = () => {
+        const items = confirmedOrder.items.map(i => `${i.quantity}x ${i.name}`).join('\n');
         const msg = `*NOVO PEDIDO - ${settings.storeName}*\n\n` +
             `📋 *Itens:*\n${items}\n\n` +
-            `👤 *Cliente:* ${name}\n` +
-            `📍 *${deliveryMode === 'delivery' ? `Entrega: ${address} - ${deliveryBairro}` : 'Retirada no local'}*\n\n` +
-            `💰 *Total:* ${formatCurrency(total)}`;
+            `👤 *Cliente:* ${confirmedOrder.customerName}\n` +
+            `📍 *${confirmedOrder.address}*\n\n` +
+            `💰 *Total:* ${formatCurrency(confirmedOrder.total)}`;
 
         window.open(`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
-        clearCart();
-        addToast('Sucesso', 'Pedido enviado para o WhatsApp!', 'success');
+        addToast('Sucesso', 'Abrindo WhatsApp...', 'success');
+        setOrderConfirmed(false);
         onBack();
     };
 

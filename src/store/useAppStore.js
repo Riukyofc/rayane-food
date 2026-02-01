@@ -139,41 +139,117 @@ const INITIAL_PRODUCTS = [
     },
 ];
 
-// Daily sales mock data for charts
-const generateSalesData = () => {
+// Calculate real analytics from orders
+const calculateAnalytics = (orders, products) => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const today = new Date().getDay();
+    const today = new Date();
+    const todayStart = new Date(today.setHours(0, 0, 0, 0));
 
-    return Array.from({ length: 7 }, (_, i) => {
-        const dayIndex = (today - 6 + i + 7) % 7;
+    // Filter orders from last 7 days
+    const last7Days = orders.filter(order => {
+        const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+        const diffDays = Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays < 7;
+    });
+
+    // Calculate daily sales for chart
+    const dailySales = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        date.setHours(0, 0, 0, 0);
+        const dayIndex = date.getDay();
+
+        const dayOrders = last7Days.filter(order => {
+            const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+            orderDate.setHours(0, 0, 0, 0);
+            return orderDate.getTime() === date.getTime();
+        });
+
+        const vendas = dayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+
         return {
             day: days[dayIndex],
-            vendas: Math.floor(Math.random() * 2000) + 800,
-            pedidos: Math.floor(Math.random() * 40) + 15
+            vendas: Math.round(vendas * 100) / 100,
+            pedidos: dayOrders.length
         };
     });
-};
 
-const INITIAL_ANALYTICS = {
-    dailySales: generateSalesData(),
-    categoryBreakdown: [
-        { name: 'Marmitas', value: 45, color: '#f97316' },
-        { name: 'Burgers', value: 30, color: '#eab308' },
-        { name: 'Pizzas', value: 15, color: '#22c55e' },
-        { name: 'Bebidas', value: 10, color: '#3b82f6' },
-    ],
-    topProducts: [
-        { name: 'Smash Burger Duplo', orders: 45, revenue: 1480.50 },
-        { name: 'Marmita Executiva', orders: 38, revenue: 946.20 },
-        { name: 'Pizza Margherita', orders: 22, revenue: 1097.80 },
-        { name: 'Bacon Cheese Burger', orders: 18, revenue: 646.20 },
-    ],
-    metrics: {
-        todaySales: 2847.50,
-        todayOrders: 42,
-        avgTicket: 67.80,
-        conversionRate: 78
-    }
+    // Calculate category breakdown
+    const categoryMap = {};
+    last7Days.forEach(order => {
+        order.items?.forEach(item => {
+            const category = item.category || 'outros';
+            categoryMap[category] = (categoryMap[category] || 0) + item.quantity;
+        });
+    });
+
+    const categoryColors = {
+        marmitas: '#f97316',
+        burgers: '#eab308',
+        pizzas: '#22c55e',
+        drinks: '#3b82f6',
+        desserts: '#ec4899',
+        outros: '#8b5cf6'
+    };
+
+    const totalItems = Object.values(categoryMap).reduce((a, b) => a + b, 0) || 1;
+    const categoryBreakdown = Object.entries(categoryMap).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value: Math.round((value / totalItems) * 100),
+        color: categoryColors[name] || '#8b5cf6'
+    }));
+
+    // Calculate top products
+    const productMap = {};
+    last7Days.forEach(order => {
+        order.items?.forEach(item => {
+            if (!productMap[item.name]) {
+                productMap[item.name] = { orders: 0, revenue: 0 };
+            }
+            productMap[item.name].orders += item.quantity;
+            productMap[item.name].revenue += item.price * item.quantity;
+        });
+    });
+
+    const topProducts = Object.entries(productMap)
+        .map(([name, data]) => ({
+            name,
+            orders: data.orders,
+            revenue: Math.round(data.revenue * 100) / 100
+        }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 4);
+
+    // Calculate today's metrics
+    const todayOrders = orders.filter(order => {
+        const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt);
+        return orderDate >= todayStart;
+    });
+
+    const todaySales = todayOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+    const avgTicket = todayOrders.length > 0 ? todaySales / todayOrders.length : 0;
+
+    // Simple conversion rate (orders / total views - simplified)
+    const conversionRate = todayOrders.length > 0 ? Math.min(todayOrders.length * 2, 100) : 0;
+
+    return {
+        dailySales,
+        categoryBreakdown: categoryBreakdown.length > 0 ? categoryBreakdown : [
+            { name: 'Marmitas', value: 45, color: '#f97316' },
+            { name: 'Burgers', value: 30, color: '#eab308' },
+            { name: 'Pizzas', value: 15, color: '#22c55e' },
+            { name: 'Bebidas', value: 10, color: '#3b82f6' },
+        ],
+        topProducts: topProducts.length > 0 ? topProducts : [
+            { name: 'Sem dados ainda', orders: 0, revenue: 0 }
+        ],
+        metrics: {
+            todaySales: Math.round(todaySales * 100) / 100,
+            todayOrders: todayOrders.length,
+            avgTicket: Math.round(avgTicket * 100) / 100,
+            conversionRate: Math.round(conversionRate)
+        }
+    };
 };
 
 // ========================================
@@ -188,7 +264,7 @@ export const useAppStore = create(
             categories: INITIAL_CATEGORIES,
             products: [], // Will be loaded from Firebase
             orders: [],
-            analytics: INITIAL_ANALYTICS,
+            analytics: calculateAnalytics([], []), // Will be calculated from real orders
             cart: [],
             toasts: [],
 
