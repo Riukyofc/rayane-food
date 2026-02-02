@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { subscribeToProducts, subscribeToSettings, seedInitialData } from './lib/firebase'
+import { subscribeToProducts, subscribeToSettings, subscribeToDeliveryZones, seedInitialData, addDeliveryZone, getSettings, getDocs, collection, db } from './lib/firebase'
 import { useAppStore } from './store/useAppStore'
 
 // Initial data for seeding (if Firestore is empty)
@@ -23,24 +23,51 @@ const INITIAL_SETTINGS = {
     whatsapp: '5511999999999',
     address: 'Av. Gastronômica, 1500 - Jardins, SP',
     openingHours: { weekdays: '11:00 - 23:00', weekends: '11:00 - 00:00' },
-    paymentMethods: { pix: true, cash: true, card: true },
-    deliveryFees: [
-        { id: '1', name: 'Centro', price: 5.90, time: '30-40 min', active: true },
-        { id: '2', name: 'Jardins', price: 7.00, time: '40-50 min', active: true },
-        { id: '3', name: 'Bela Vista', price: 8.50, time: '45-55 min', active: true },
-        { id: '4', name: 'Pinheiros', price: 9.00, time: '50-60 min', active: true },
-    ]
+    paymentMethods: { pix: true, cash: true, card: true }
+};
+
+const INITIAL_DELIVERY_ZONES = [
+    { name: 'Centro', price: 5.90, time: '30-40 min' },
+    { name: 'Jardins', price: 7.00, time: '40-50 min' },
+    { name: 'Bela Vista', price: 8.50, time: '45-55 min' },
+    { name: 'Pinheiros', price: 9.00, time: '50-60 min' },
+];
+
+// Seed initial delivery zones if empty
+const seedDeliveryZones = async () => {
+    try {
+        const { getDocs, collection } = await import('firebase/firestore');
+        const { db } = await import('./lib/firebase');
+
+        const zonesSnapshot = await getDocs(collection(db, 'deliveryZones'));
+
+        if (zonesSnapshot.empty) {
+            console.log('🌱 Seeding initial delivery zones...');
+            for (const zone of INITIAL_DELIVERY_ZONES) {
+                await addDeliveryZone(zone);
+            }
+            console.log(`✅ Seeded ${INITIAL_DELIVERY_ZONES.length} delivery zones`);
+        }
+    } catch (error) {
+        console.error('Error seeding delivery zones:', error);
+    }
 };
 
 // Seed and subscribe to Firebase on startup
 seedInitialData(INITIAL_PRODUCTS, INITIAL_SETTINGS);
+seedDeliveryZones();
 
+// Subscribe to real-time updates
 subscribeToProducts((products) => {
     useAppStore.getState().setProducts(products);
 });
 
 subscribeToSettings((settings) => {
     useAppStore.getState().setSettings(settings);
+});
+
+subscribeToDeliveryZones((zones) => {
+    useAppStore.getState().setDeliveryZones(zones);
 });
 
 ReactDOM.createRoot(document.getElementById('root')).render(

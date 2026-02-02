@@ -8,11 +8,15 @@ import {
     getUserProfile,
     createOrder as firebaseCreateOrder,
     subscribeToOrders,
+    subscribeToUserOrders,
     updateOrderStatus as firebaseUpdateOrderStatus,
     addProduct as firebaseAddProduct,
     updateProduct as firebaseUpdateProduct,
     deleteProduct as firebaseDeleteProduct,
-    updateSettings as firebaseUpdateSettings
+    updateSettings as firebaseUpdateSettings,
+    addDeliveryZone as firebaseAddDeliveryZone,
+    updateDeliveryZone as firebaseUpdateDeliveryZone,
+    deleteDeliveryZone as firebaseDeleteDeliveryZone
 } from '../lib/firebase';
 
 // ========================================
@@ -28,13 +32,7 @@ const INITIAL_SETTINGS = {
         weekdays: '11:00 - 23:00',
         weekends: '11:00 - 00:00'
     },
-    paymentMethods: { pix: true, cash: true, card: true },
-    deliveryFees: [
-        { id: '1', name: 'Centro', price: 5.90, time: '30-40 min', active: true },
-        { id: '2', name: 'Jardins', price: 7.00, time: '40-50 min', active: true },
-        { id: '3', name: 'Bela Vista', price: 8.50, time: '45-55 min', active: true },
-        { id: '4', name: 'Pinheiros', price: 9.00, time: '50-60 min', active: true },
-    ]
+    paymentMethods: { pix: true, cash: true, card: true }
 };
 
 const INITIAL_CATEGORIES = [
@@ -264,6 +262,8 @@ export const useAppStore = create(
             categories: INITIAL_CATEGORIES,
             products: [], // Will be loaded from Firebase
             orders: [],
+            deliveryZones: [], // Will be loaded from Firebase
+            userOrders: [], // User's own orders for "Meus Pedidos"
             analytics: calculateAnalytics([], []), // Will be calculated from real orders
             cart: [],
             toasts: [],
@@ -390,36 +390,42 @@ export const useAppStore = create(
                 updateSettings({ isOpen: !settings.isOpen });
             },
 
-            addDeliveryZone: (zone) => {
-                const newZone = { ...zone, id: Date.now().toString(), active: true };
-                set(state => ({
-                    settings: {
-                        ...state.settings,
-                        deliveryFees: [...state.settings.deliveryFees, newZone]
-                    }
-                }));
-                get().addToast('Entrega', `Área "${zone.name}" adicionada.`, 'success');
+            // ========================================
+            // DELIVERY ZONES ACTIONS
+            // ========================================
+            setDeliveryZones: (zones) => set({ deliveryZones: zones }),
+
+            addDeliveryZone: async (zone) => {
+                // Save to Firebase
+                const result = await firebaseAddDeliveryZone(zone);
+                if (result.success) {
+                    get().addToast('Entrega', `Área "${zone.name}" adicionada.`, 'success');
+                } else {
+                    get().addToast('Erro', 'Falha ao adicionar área de entrega', 'error');
+                }
+                return result;
             },
 
-            removeDeliveryZone: (id) => {
-                set(state => ({
-                    settings: {
-                        ...state.settings,
-                        deliveryFees: state.settings.deliveryFees.filter(f => f.id !== id)
-                    }
-                }));
-                get().addToast('Entrega', 'Área removida.', 'info');
+            removeDeliveryZone: async (id) => {
+                // Delete from Firebase
+                const result = await firebaseDeleteDeliveryZone(id);
+                if (result.success) {
+                    get().addToast('Entrega', 'Área removida.', 'info');
+                } else {
+                    get().addToast('Erro', 'Falha ao remover área', 'error');
+                }
             },
 
-            toggleDeliveryZone: (id) => {
-                set(state => ({
-                    settings: {
-                        ...state.settings,
-                        deliveryFees: state.settings.deliveryFees.map(f =>
-                            f.id === id ? { ...f, active: !f.active } : f
-                        )
-                    }
-                }));
+            toggleDeliveryZone: async (id) => {
+                // Find the zone
+                const zone = get().deliveryZones.find(z => z.id === id);
+                if (!zone) return;
+
+                // Update in Firebase
+                const result = await firebaseUpdateDeliveryZone(id, { active: !zone.active });
+                if (!result.success) {
+                    get().addToast('Erro', 'Falha ao atualizar área', 'error');
+                }
             },
 
             // ========================================
@@ -555,6 +561,46 @@ export const useAppStore = create(
             setSelectedOrder: (order) => set({ selectedOrder: order }),
 
             // ========================================
+            // USER ORDERS ACTIONS (for "Meus Pedidos")
+            // ========================================
+            setUserOrders: (newOrders) => {
+                const { userOrders: oldOrders, addToast } = get();
+
+                // Detect status changes and show notifications
+                newOrders.forEach(newOrder => {
+                    const oldOrder = oldOrders.find(o => o.id === newOrder.id);
+
+                    // Only notify if order already existed and status changed
+                    if (oldOrder && oldOrder.status !== newOrder.status) {
+                        const statusMessages = {
+                            preparing: {
+                                title: '✅ Pedido Confirmado!',
+                                message: `Seu pedido #${newOrder.id.substring(0, 8)} foi aceito e está sendo preparado.`,
+                                type: 'success'
+                            },
+                            delivery: {
+                                title: '🚚 Saiu para Entrega!',
+                                message: `Seu pedido #${newOrder.id.substring(0, 8)} está a caminho!`,
+                                type: 'info'
+                            },
+                            done: {
+                                title: '🎉 Pedido Concluído!',
+                                message: `Seu pedido #${newOrder.id.substring(0, 8)} foi entregue com sucesso!`,
+                                type: 'success'
+                            }
+                        };
+
+                        const notification = statusMessages[newOrder.status];
+                        if (notification) {
+                            addToast(notification.title, notification.message, notification.type);
+                        }
+                    }
+                });
+
+                set({ userOrders: newOrders });
+            },
+
+            // ========================================
             // CART ACTIONS
             // ========================================
             addToCart: (product, observation = '') => {
@@ -673,28 +719,42 @@ export const getTimeAgo = (timestamp) => {
 // ========================================
 
 export const initializeFirebaseListeners = () => {
-    const store = useAppStore.getState();
+    const unsubscribers = [];
+    let userOrdersUnsub = null;
 
-    // Auth listener
+    // Subscribe to Auth state
     const unsubAuth = subscribeToAuth(async (user) => {
         if (user) {
             const profile = await getUserProfile(user.uid);
-            store.setUser(user);
-            store.setUserProfile(profile);
-        } else {
-            store.setUser(null);
-            store.setUserProfile(null);
-        }
-        store.setAuthLoading(false);
-    });
+            useAppStore.getState().setUser(user);
+            useAppStore.getState().setUserProfile(profile);
 
-    // Orders listener
-    const unsubOrders = subscribeToOrders((orders) => {
-        store.setOrders(orders);
+            // Subscribe to user's orders when logged in
+            if (userOrdersUnsub) userOrdersUnsub();
+            userOrdersUnsub = subscribeToUserOrders(user.uid, (userOrders) => {
+                useAppStore.getState().setUserOrders(userOrders);
+            });
+        } else {
+            useAppStore.getState().setUser(null);
+            useAppStore.getState().setUserProfile(null);
+            useAppStore.getState().setUserOrders([]);
+            if (userOrdersUnsub) {
+                userOrdersUnsub();
+                userOrdersUnsub = null;
+            }
+        }
+        useAppStore.getState().setAuthLoading(false);
     });
+    unsubscribers.push(unsubAuth);
+
+    // Subscribe to Orders (admin)
+    const unsubOrders = subscribeToOrders((orders) => {
+        useAppStore.getState().setOrders(orders);
+    });
+    unsubscribers.push(unsubOrders);
 
     return () => {
-        unsubAuth();
-        unsubOrders();
+        unsubscribers.forEach(unsub => unsub());
+        if (userOrdersUnsub) userOrdersUnsub();
     };
 };

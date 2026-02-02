@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ShoppingBag, Minus, Plus, X, MapPin, Store, ChevronLeft, Star,
-    Clock, ChevronRight, Search, Settings, Phone, Instagram, Bike, Package, User
+    Clock, ChevronRight, Search, Settings, Phone, Instagram, Bike, Package, User, Receipt
 } from 'lucide-react';
 import { useAppStore, formatCurrency } from '../../store/useAppStore';
 import { Button, Modal, Badge } from '../ui';
 import { UserMenu } from '../auth/AuthModal';
+import { MyOrdersView } from './MyOrdersView';
 
 // ========================================
 // PRODUCT MODAL
@@ -231,6 +232,7 @@ const CartDrawer = ({ isOpen, onClose, onCheckout }) => {
 const CheckoutView = ({ onBack }) => {
     const cart = useAppStore(state => state.cart);
     const settings = useAppStore(state => state.settings);
+    const deliveryZones = useAppStore(state => state.deliveryZones);
     const getCartTotal = useAppStore(state => state.getCartTotal);
     const clearCart = useAppStore(state => state.clearCart);
     const addToast = useAppStore(state => state.addToast);
@@ -245,9 +247,9 @@ const CheckoutView = ({ onBack }) => {
 
     const deliveryFee = useMemo(() => {
         if (deliveryMode === 'pickup') return 0;
-        const zone = settings.deliveryFees.find(f => f.name === deliveryBairro);
+        const zone = deliveryZones.find(f => f.name === deliveryBairro);
         return zone ? zone.price : 0;
-    }, [deliveryBairro, deliveryMode, settings.deliveryFees]);
+    }, [deliveryBairro, deliveryMode, deliveryZones]);
 
     const subtotal = getCartTotal();
     const total = subtotal + deliveryFee;
@@ -372,7 +374,7 @@ const CheckoutView = ({ onBack }) => {
                                     className="input"
                                 >
                                     <option value="">Selecione o bairro...</option>
-                                    {settings.deliveryFees.filter(f => f.active).map(f => (
+                                    {deliveryZones.filter(f => f.active).map(f => (
                                         <option key={f.id} value={f.name}>
                                             {f.name} ({formatCurrency(f.price)} - {f.time})
                                         </option>
@@ -562,11 +564,12 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
     const setCartOpen = useAppStore(state => state.setCartOpen);
     const getCartCount = useAppStore(state => state.getCartCount);
     const user = useAppStore(state => state.user);
+    const userOrders = useAppStore(state => state.userOrders);
 
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [view, setView] = useState('home'); // 'home' | 'checkout'
+    const [view, setView] = useState('home'); // 'home' | 'checkout' | 'myorders'
     const [showAddedModal, setShowAddedModal] = useState(false);
     const [addedProduct, setAddedProduct] = useState(null);
 
@@ -591,9 +594,14 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
     }, [products, activeCategory, searchQuery]);
 
     const cartCount = getCartCount();
+    const activeOrdersCount = userOrders.filter(o => o.status !== 'done' && o.status !== 'cancelled').length;
 
     if (view === 'checkout') {
         return <CheckoutView onBack={() => setView('home')} />;
+    }
+
+    if (view === 'myorders') {
+        return <MyOrdersView onBack={() => setView('home')} />;
     }
 
     return (
@@ -618,6 +626,27 @@ export const ClientStore = ({ onOpenAdmin, onOpenAuth }) => {
 
                     <div className="flex items-center gap-3">
                         <UserMenu onOpenAuth={onOpenAuth} />
+
+                        {/* My Orders Button - Only shown if logged in */}
+                        {user && (
+                            <button
+                                onClick={() => setView('myorders')}
+                                className="relative p-3 bg-dark-300 hover:bg-dark-200 rounded-xl transition-colors"
+                                title="Meus Pedidos"
+                            >
+                                <Receipt size={22} className="text-white" />
+                                {activeOrdersCount > 0 && (
+                                    <motion.span
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg"
+                                    >
+                                        {activeOrdersCount}
+                                    </motion.span>
+                                )}
+                            </button>
+                        )}
+
                         <button
                             onClick={() => setCartOpen(true)}
                             className="relative p-3 bg-dark-300 hover:bg-dark-200 rounded-xl transition-colors"

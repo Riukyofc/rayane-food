@@ -792,7 +792,7 @@ const ZoneFormModal = ({ isOpen, onClose }) => {
 };
 
 const DeliveryZonesView = () => {
-    const settings = useAppStore(state => state.settings);
+    const deliveryZones = useAppStore(state => state.deliveryZones);
     const removeDeliveryZone = useAppStore(state => state.removeDeliveryZone);
     const toggleDeliveryZone = useAppStore(state => state.toggleDeliveryZone);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -802,7 +802,7 @@ const DeliveryZonesView = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <h3 className="text-lg font-bold text-white">Áreas de Entrega</h3>
-                    <p className="text-sm text-zinc-500">{settings.deliveryFees.length} áreas cadastradas</p>
+                    <p className="text-sm text-zinc-500">{deliveryZones.length} áreas cadastradas</p>
                 </div>
                 <Button onClick={() => setIsModalOpen(true)} icon={PlusCircle}>
                     Nova Área
@@ -811,7 +811,7 @@ const DeliveryZonesView = () => {
 
             <div className="space-y-3">
                 <AnimatePresence mode="popLayout">
-                    {settings.deliveryFees.map(zone => (
+                    {deliveryZones.map(zone => (
                         <motion.div
                             key={zone.id}
                             layout
@@ -849,7 +849,7 @@ const DeliveryZonesView = () => {
                 </AnimatePresence>
             </div>
 
-            {settings.deliveryFees.length === 0 && (
+            {deliveryZones.length === 0 && (
                 <EmptyState
                     icon={MapPin}
                     title="Nenhuma área cadastrada"

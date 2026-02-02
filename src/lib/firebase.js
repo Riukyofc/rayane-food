@@ -202,6 +202,29 @@ export const getOrdersByUser = async (userId) => {
     }
 };
 
+export const subscribeToUserOrders = (userId, callback) => {
+    if (!userId) {
+        console.warn('subscribeToUserOrders called without userId');
+        return () => { }; // Return empty unsubscribe function
+    }
+
+    const q = query(
+        collection(db, 'orders'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const orders = snapshot.docs.map(doc => ({
+            id: doc.id,
+            firestoreId: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+        }));
+        callback(orders);
+    });
+};
+
 // ========================================
 // FIRESTORE - PRODUCTS
 // ========================================
@@ -285,6 +308,58 @@ export const subscribeToSettings = (callback) => {
         if (doc.exists()) {
             callback(doc.data());
         }
+    });
+};
+
+// ========================================
+// FIRESTORE - DELIVERY ZONES
+// ========================================
+
+export const addDeliveryZone = async (zoneData) => {
+    try {
+        const docRef = await addDoc(collection(db, 'deliveryZones'), {
+            ...zoneData,
+            active: true,
+            createdAt: serverTimestamp()
+        });
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error('Error adding delivery zone:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const updateDeliveryZone = async (zoneId, updates) => {
+    try {
+        await updateDoc(doc(db, 'deliveryZones', zoneId), {
+            ...updates,
+            updatedAt: serverTimestamp()
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating delivery zone:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const deleteDeliveryZone = async (zoneId) => {
+    try {
+        await deleteDoc(doc(db, 'deliveryZones', zoneId));
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting delivery zone:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const subscribeToDeliveryZones = (callback) => {
+    const q = query(collection(db, 'deliveryZones'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+        const zones = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        callback(zones);
     });
 };
 
